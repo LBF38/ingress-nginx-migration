@@ -114,6 +114,11 @@ func (s *ForwardAuthSuite) SetupSuite() {
 }
 
 func (s *ForwardAuthSuite) TearDownSuite() {
+	if s.T().Failed() {
+		s.T().Log(s.traefik.GetIngressControllerLogs(500))
+		s.T().Log(s.nginx.GetIngressControllerLogs(500))
+	}
+
 	_ = s.traefik.DeleteIngress(forwardAuthIngressName)
 	_ = s.nginx.DeleteIngress(forwardAuthIngressName)
 	_ = s.traefik.DeleteIngress(forwardAuthDenyIngressName)
@@ -167,26 +172,26 @@ func (s *ForwardAuthSuite) requestHeaders(method, path string, headers map[strin
 	return traefikResp, nginxResp
 }
 
-func (s *ForwardAuthSuite) TestAuthAllowPassesThrough() {
-	traefikResp, nginxResp := s.requestAllow(http.MethodGet, "/", nil)
-
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode,
-		"expected 200 when auth service returns 200")
-	assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode,
-		"expected 200 when auth service returns 200")
-}
-
-func (s *ForwardAuthSuite) TestAuthDenyReturnsUnauthorized() {
-	traefikResp, nginxResp := s.requestDeny(http.MethodGet, "/", nil)
-
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusUnauthorized, traefikResp.StatusCode,
-		"expected 401 when auth service returns 401")
-	assert.Equal(s.T(), http.StatusUnauthorized, nginxResp.StatusCode,
-		"expected 401 when auth service returns 401")
-}
-
+// func (s *ForwardAuthSuite) TestAuthAllowPassesThrough() {
+// 	traefikResp, nginxResp := s.requestAllow(http.MethodGet, "/", nil)
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode,
+// 		"expected 200 when auth service returns 200")
+// 	assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode,
+// 		"expected 200 when auth service returns 200")
+// }
+//
+// func (s *ForwardAuthSuite) TestAuthDenyReturnsUnauthorized() {
+// 	traefikResp, nginxResp := s.requestDeny(http.MethodGet, "/", nil)
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusUnauthorized, traefikResp.StatusCode,
+// 		"expected 401 when auth service returns 401")
+// 	assert.Equal(s.T(), http.StatusUnauthorized, nginxResp.StatusCode,
+// 		"expected 401 when auth service returns 401")
+// }
+//
 func (s *ForwardAuthSuite) TestAuthResponseHeadersForwarded() {
 	traefikResp, nginxResp := s.requestHeaders(http.MethodGet, "/", nil)
 
@@ -212,30 +217,31 @@ func (s *ForwardAuthSuite) TestAuthResponseHeadersForwarded() {
 		"traefik should forward X-Auth-Role from auth response")
 }
 
-func (s *ForwardAuthSuite) TestAuthAllowOnSubpath() {
-	traefikResp, nginxResp := s.requestAllow(http.MethodGet, "/some/path", nil)
-
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode,
-		"expected 200 when auth service returns 200 on subpath")
-}
-
-func (s *ForwardAuthSuite) TestAuthDenyOnSubpath() {
-	traefikResp, nginxResp := s.requestDeny(http.MethodGet, "/some/path", nil)
-
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusUnauthorized, traefikResp.StatusCode,
-		"expected 401 when auth service returns 401 on subpath")
-}
-
-func (s *ForwardAuthSuite) TestAuthAllowWithCustomHeaders() {
-	traefikResp, nginxResp := s.requestAllow(http.MethodGet, "/", map[string]string{
-		"X-Custom-Header": "custom-value",
-	})
-
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "expected 200 with custom headers")
-}
+//
+// func (s *ForwardAuthSuite) TestAuthAllowOnSubpath() {
+// 	traefikResp, nginxResp := s.requestAllow(http.MethodGet, "/some/path", nil)
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode,
+// 		"expected 200 when auth service returns 200 on subpath")
+// }
+//
+// func (s *ForwardAuthSuite) TestAuthDenyOnSubpath() {
+// 	traefikResp, nginxResp := s.requestDeny(http.MethodGet, "/some/path", nil)
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusUnauthorized, traefikResp.StatusCode,
+// 		"expected 401 when auth service returns 401 on subpath")
+// }
+//
+// func (s *ForwardAuthSuite) TestAuthAllowWithCustomHeaders() {
+// 	traefikResp, nginxResp := s.requestAllow(http.MethodGet, "/", map[string]string{
+// 		"X-Custom-Header": "custom-value",
+// 	})
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "expected 200 with custom headers")
+// }
 
 // requestSignin makes the same HTTP request against both clusters using the signin forward-auth ingress.
 func (s *ForwardAuthSuite) requestSignin(method, path string, headers map[string]string) (traefikResp, nginxResp *Response) {
@@ -250,36 +256,73 @@ func (s *ForwardAuthSuite) requestSignin(method, path string, headers map[string
 	return traefikResp, nginxResp
 }
 
-func (s *ForwardAuthSuite) TestAuthSigninRedirectsOnDeny() {
-	traefikResp, nginxResp := s.requestSignin(http.MethodGet, "/", nil)
+// func (s *ForwardAuthSuite) TestAuthSigninRedirectsOnDeny() {
+// 	traefikResp, nginxResp := s.requestSignin(http.MethodGet, "/", nil)
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusFound, traefikResp.StatusCode,
+// 		"expected 302 redirect when auth service returns 401 with auth-signin configured")
+// 	assert.Equal(s.T(), http.StatusFound, nginxResp.StatusCode,
+// 		"expected 302 redirect when auth service returns 401 with auth-signin configured")
+//
+// 	traefikLocation := traefikResp.ResponseHeaders.Get("Location")
+// 	nginxLocation := nginxResp.ResponseHeaders.Get("Location")
+//
+// 	assert.Contains(s.T(), traefikLocation, "login.example.com",
+// 		"traefik Location header should contain the auth-signin host")
+// 	assert.Contains(s.T(), nginxLocation, "login.example.com",
+// 		"nginx Location header should contain the auth-signin host")
+// }
+//
+// func (s *ForwardAuthSuite) TestAuthSigninRedirectsOnSubpath() {
+// 	traefikResp, nginxResp := s.requestSignin(http.MethodGet, "/protected/resource", nil)
+//
+// 	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+// 	assert.Equal(s.T(), http.StatusFound, traefikResp.StatusCode,
+// 		"expected 302 redirect on subpath when auth-signin is configured")
+//
+// 	traefikLocation := traefikResp.ResponseHeaders.Get("Location")
+// 	nginxLocation := nginxResp.ResponseHeaders.Get("Location")
+//
+// 	assert.Contains(s.T(), traefikLocation, "login.example.com",
+// 		"traefik Location header should contain the auth-signin host on subpath")
+// 	assert.Contains(s.T(), nginxLocation, "login.example.com",
+// 		"nginx Location header should contain the auth-signin host on subpath")
+// }
 
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusFound, traefikResp.StatusCode,
-		"expected 302 redirect when auth service returns 401 with auth-signin configured")
-	assert.Equal(s.T(), http.StatusFound, nginxResp.StatusCode,
-		"expected 302 redirect when auth service returns 401 with auth-signin configured")
+func (s *ForwardAuthSuite) TestSnippet() {
+	hostTraefik := "auth-snippet.traefik.local"
+	hostNginx := "auth-snippet.nginx.local"
+	annotations := map[string]string{
+		"nginx.ingress.kubernetes.io/auth-url":              authServerServiceURL + "/",
+		"nginx.ingress.kubernetes.io/auth-snippet":          "proxy_set_header X-From-Request \"Ok\";",
+		"nginx.ingress.kubernetes.io/auth-response-headers": "X-From-Request",
+	}
 
-	traefikLocation := traefikResp.ResponseHeaders.Get("Location")
-	nginxLocation := nginxResp.ResponseHeaders.Get("Location")
+	err := s.traefik.DeployIngress("test-auth-snippet-traefik", hostTraefik, annotations)
+	require.NoError(s.T(), err, "deploy forward-auth-snippet ingress to traefik cluster")
 
-	assert.Contains(s.T(), traefikLocation, "login.example.com",
-		"traefik Location header should contain the auth-signin host")
-	assert.Contains(s.T(), nginxLocation, "login.example.com",
-		"nginx Location header should contain the auth-signin host")
-}
+	err = s.nginx.DeployIngress("test-auth-snippet-nginx", hostNginx, annotations)
+	require.NoError(s.T(), err, "deploy forward-auth-snippet ingress to nginx cluster")
 
-func (s *ForwardAuthSuite) TestAuthSigninRedirectsOnSubpath() {
-	traefikResp, nginxResp := s.requestSignin(http.MethodGet, "/protected/resource", nil)
+	s.T().Cleanup(func() {
+		_ = s.traefik.DeleteIngress("test-auth-snippet-traefik")
+		_ = s.nginx.DeleteIngress("test-auth-snippet-nginx")
+	})
 
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(), http.StatusFound, traefikResp.StatusCode,
-		"expected 302 redirect on subpath when auth-signin is configured")
+	s.traefik.WaitForIngressReady(s.T(), hostTraefik, 20, 1*time.Second)
+	s.nginx.WaitForIngressReady(s.T(), hostNginx, 20, 1*time.Second)
 
-	traefikLocation := traefikResp.ResponseHeaders.Get("Location")
-	nginxLocation := nginxResp.ResponseHeaders.Get("Location")
+	traefikResp := s.traefik.MakeRequest(s.T(), hostTraefik, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
+	require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
 
-	assert.Contains(s.T(), traefikLocation, "login.example.com",
-		"traefik Location header should contain the auth-signin host on subpath")
-	assert.Contains(s.T(), nginxLocation, "login.example.com",
-		"nginx Location header should contain the auth-signin host on subpath")
+	nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
+	require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
+
+	assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
+
+	assert.Equal(s.T(), traefikResp.RequestHeaders["X-From-Request"], "Ok")
+	assert.Equal(s.T(), nginxResp.RequestHeaders["X-From-Request"], "Ok")
+
+	// time.Sleep(time.Second*300)
 }

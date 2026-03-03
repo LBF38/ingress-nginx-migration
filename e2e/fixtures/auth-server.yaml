@@ -9,6 +9,8 @@ data:
         location / {
             add_header X-Auth-User "authenticated-user" always;
             add_header X-Auth-Role "admin" always;
+            add_header Set-Cookie "session=auth" always;
+            add_header X-From-Request $http_x_from_request always;
             return 200 "auth ok";
         }
         location /deny {

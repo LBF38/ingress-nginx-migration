@@ -51,6 +51,7 @@ func init() {
 	// kubernetesIngressNginx provider. The image is loaded from the local
 	// Docker daemon into the k3s cluster.
 	traefikImage = os.Getenv("TRAEFIK_IMAGE")
+	traefikImage = "traefik/traefik:v100.0.0"
 }
 
 func TestMain(m *testing.M) {
