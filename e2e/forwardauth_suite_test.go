@@ -348,6 +348,7 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
 
 				assert.Equal(s.T(), http.MethodGet, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
@@ -371,6 +372,7 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
 
 				assert.Equal(s.T(), http.MethodPut, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
@@ -394,6 +396,7 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
 
 				assert.Equal(s.T(), http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
@@ -416,6 +419,7 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
 
 				assert.Equal(s.T(), http.MethodPut, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
@@ -450,6 +454,7 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp = s.nginx.MakeRequest(s.T(), hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
 
 				assert.Equal(s.T(), http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
@@ -475,8 +480,8 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				assert.Equal(s.T(), http.StatusUnauthorized, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusUnauthorized, nginxResp.StatusCode, "status code mismatch")
 
-				assert.Equal(s.T(), "", traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
-				assert.Equal(s.T(), "", nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
+				assert.Equal(s.T(), "", traefikResp.RequestHeaders["X-Request-Method"], "traefik request header mismatch")
+				assert.Equal(s.T(), "", nginxResp.RequestHeaders["X-Request-Method"], "nginx request header mismatch")
 
 				traefikResp = s.traefik.MakeRequest(s.T(), hostTraefik, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
@@ -485,9 +490,36 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 
-				assert.Equal(s.T(), http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
-				assert.Equal(s.T(), http.MethodPost, nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
+				assert.Equal(s.T(), http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik request header mismatch")
+				assert.Equal(s.T(), http.MethodPost, nginxResp.RequestHeaders["X-Request-Method"], "nginx request header mismatch")
+			},
+		},
+		{
+			desc: "add_header",
+			annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/auth-url":              authServerServiceURL + "/",
+				"nginx.ingress.kubernetes.io/auth-snippet":          "add_header X-Auth-Debug $request_uri always;",
+				"nginx.ingress.kubernetes.io/configuration-snippet": "auth_request_set $authHeader0 $upstream_http_x_auth_debug;\nproxy_set_header X-Auth-Debug $authHeader0;\n",
+				"nginx.ingress.kubernetes.io/auth-response-headers": "X-Auth-Debug",
+			},
+			test: func(t *testing.T, hostTraefik, hostNginx string) {
+				t.Helper()
+
+				traefikResp := s.traefik.MakeRequest(s.T(), hostTraefik, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
+				require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
+
+				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
+				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
+
+				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
+
+				assert.Equal(s.T(), http.MethodPost, traefikResp.RequestHeaders["X-Auth-Debug"], "traefik request header mismatch")
+				assert.Equal(s.T(), http.MethodPost, traefikResp.ResponseHeaders["X-Auth-Debug"], "traefik response header mismatch")
+				assert.Equal(s.T(), http.MethodPost, nginxResp.RequestHeaders["X-Auth-Debug"], "nginx request header mismatch")
+				assert.Equal(s.T(), http.MethodPost, nginxResp.ResponseHeaders["X-Auth-Debug"], "nginx response header mismatch")
 			},
 		},
 	}
