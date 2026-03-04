@@ -426,7 +426,7 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 			desc: "proxy_method with if",
 			annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/auth-url":              authServerServiceURL + "/",
-				"nginx.ingress.kubernetes.io/auth-snippet":          "if ($request_method = GET) { add_header X-Request-Method \"PUT\";\nreturn 200;}\nproxy_method $request_method;",
+				"nginx.ingress.kubernetes.io/auth-snippet":          "if ($request_method = GET) { \nreturn 200;}\nproxy_method $request_method;",
 				"nginx.ingress.kubernetes.io/auth-response-headers": "X-Request-Method",
 			},
 			test: func(t *testing.T, hostTraefik, hostNginx string) {
@@ -438,10 +438,45 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
+				assert.Equal(s.T(), http.StatusOK, traefikResp.StatusCode, "status code mismatch")
 				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
 
-				assert.Equal(s.T(), http.MethodGet, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
-				assert.Equal(s.T(), http.MethodGet, nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
+				assert.Equal(s.T(), "", traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
+				assert.Equal(s.T(), "", nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
+
+				traefikResp = s.traefik.MakeRequest(s.T(), hostTraefik, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
+				require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
+
+				nginxResp = s.nginx.MakeRequest(s.T(), hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
+				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
+
+				assert.Equal(s.T(), http.StatusOK, nginxResp.StatusCode, "status code mismatch")
+
+				assert.Equal(s.T(), http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
+				assert.Equal(s.T(), http.MethodPost, nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
+			},
+		},
+		{
+			desc: "proxy_method with if and 401",
+			annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/auth-url":              authServerServiceURL + "/",
+				"nginx.ingress.kubernetes.io/auth-snippet":          "if ($request_method = GET) { \nreturn 401;}\nproxy_method $request_method;",
+				"nginx.ingress.kubernetes.io/auth-response-headers": "X-Request-Method",
+			},
+			test: func(t *testing.T, hostTraefik, hostNginx string) {
+				t.Helper()
+
+				traefikResp := s.traefik.MakeRequest(s.T(), hostTraefik, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
+				require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
+
+				nginxResp := s.nginx.MakeRequest(s.T(), hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
+				require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
+
+				assert.Equal(s.T(), http.StatusUnauthorized, traefikResp.StatusCode, "status code mismatch")
+				assert.Equal(s.T(), http.StatusUnauthorized, nginxResp.StatusCode, "status code mismatch")
+
+				assert.Equal(s.T(), "", traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
+				assert.Equal(s.T(), "", nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
 
 				traefikResp = s.traefik.MakeRequest(s.T(), hostTraefik, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
