@@ -439,8 +439,8 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(t, hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(t, nginxResp, "nginx response should not be nil")
 
-				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "status code mismatch")
-				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "status code mismatch")
+				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "traefik status code mismatch")
+				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "nginx status code mismatch")
 
 				assert.Equal(t, "", traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
 				assert.Equal(t, "", nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
@@ -451,8 +451,8 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp = s.nginx.MakeRequest(t, hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(t, nginxResp, "nginx response should not be nil")
 
-				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "status code mismatch")
-				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "status code mismatch")
+				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "traefik status code mismatch")
+				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "nginx status code mismatch")
 
 				assert.Equal(t, http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik response header mismatch")
 				assert.Equal(t, http.MethodPost, nginxResp.RequestHeaders["X-Request-Method"], "nginx response header mismatch")
@@ -474,8 +474,8 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp := s.nginx.MakeRequest(t, hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(t, nginxResp, "nginx response should not be nil")
 
-				assert.Equal(t, http.StatusUnauthorized, traefikResp.StatusCode, "status code mismatch")
-				assert.Equal(t, http.StatusUnauthorized, nginxResp.StatusCode, "status code mismatch")
+				assert.Equal(t, http.StatusUnauthorized, traefikResp.StatusCode, "traefik status code mismatch")
+				assert.Equal(t, http.StatusUnauthorized, nginxResp.StatusCode, "traefik status code mismatch")
 
 				assert.Equal(t, "", traefikResp.RequestHeaders["X-Request-Method"], "traefik request header mismatch")
 				assert.Equal(t, "", nginxResp.RequestHeaders["X-Request-Method"], "nginx request header mismatch")
@@ -486,8 +486,8 @@ func (s *ForwardAuthSuite) TestProxyMethodSnippet() {
 				nginxResp = s.nginx.MakeRequest(t, hostNginx, http.MethodPost, "/protected/resource", nil, 3, 1*time.Second)
 				require.NotNil(t, nginxResp, "nginx response should not be nil")
 
-				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "status code mismatch")
-				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "status code mismatch")
+				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "traefik status code mismatch")
+				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "nginx status code mismatch")
 
 				assert.Equal(t, http.MethodPost, traefikResp.RequestHeaders["X-Request-Method"], "traefik request header mismatch")
 				assert.Equal(t, http.MethodPost, nginxResp.RequestHeaders["X-Request-Method"], "nginx request header mismatch")
